@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1f5fbf"><meta name="mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon-192.png"><title>Control de Flota – Planilla diaria</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1b1f24;--mu:#6a727c;--bd:#d9dde2;--ac:#1f5fbf;--ok:#1e8e4e;--no:#c62828;--nb:#fdeaea;--ob:#e6f5ec;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121417;--card:#1c2025;--tx:#e8eaed;--mu:#9aa3ad;--bd:#343a41;--ac:#6ea1f0;--ok:#4cc38a;--no:#ff6b6b;--nb:#3a1f1f;--ob:#17301f}}
+:root[data-theme="dark"]{--bg:#121417;--card:#1c2025;--tx:#e8eaed;--mu:#9aa3ad;--bd:#343a41;--ac:#6ea1f0;--ok:#4cc38a;--no:#ff6b6b;--nb:#3a1f1f;--ob:#17301f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:12px 14px 0}
+h1{font-size:17px;margin:0}
+.sub{color:var(--mu);font-size:12px}
+.tabs{display:flex;gap:6px;padding:10px 14px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+.tabs button{flex:1;padding:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;font-weight:600;font-size:14px}
+.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+main{padding:0 14px 40px;max-width:760px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mu);margin:0 0 8px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+label{font-size:12px;color:var(--mu);display:block}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+textarea{min-height:80px}
+.items{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.it{padding:9px 8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);text-align:left;font-size:13px;display:flex;justify-content:space-between;gap:6px;align-items:center}
+.it b{font-size:12px;min-width:20px;text-align:center}
+.it.ok{background:var(--ob);border-color:var(--ok)}.it.ok b{color:var(--ok)}
+.it.nov{background:var(--nb);border-color:var(--no)}.it.nov b{color:var(--no)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:11px 14px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-weight:600;font-size:14px}
+.btn.p{background:var(--ac);color:#fff;border-color:var(--ac);flex:1}
+.pase{border-color:var(--no);background:var(--nb)}
+.pase h2{color:var(--no)}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700}
+.b-ok{background:var(--ob);color:var(--ok)}.b-no{background:var(--nb);color:var(--no)}
+.pl{border-left:4px solid var(--ok)}.pl.n{border-left-color:var(--no)}.pl.r{border-left-color:var(--mu);opacity:.75}
+.pl .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.tag{font-size:12px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:1px 6px;margin:2px 4px 0 0;display:inline-block}
+.msg{color:var(--mu);text-align:center;padding:20px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;display:none;z-index:9}
+@media print{#outbox,.tabs,header .sub,.row,#allok,#v2,#toast,#lockmsg{display:none!important}#v1{display:block!important}body{background:#fff;color:#000}.it,.card{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}.card:has(#allok){display:none}}
+</style></head><body>
+<header><h1>Sistema de Control de Flota COp</h1><div class="sub">Planilla de control diaria – Chofer · funciona sin internet</div></header>
+<div class="tabs"><button id="t1" class="on">Cargar planilla</button><button id="t2">Monitoreo</button></div>
+<main>
+<section id="v1">
+ <div id="pase"></div>
+ <div class="card"><h2>Datos</h2><div class="g">
+  <div><label>N° COp</label><input id="nro" inputmode="numeric"></div>
+  <div><label>Tipo de vehículo</label><select id="tipo"></select></div>
+  <div><label>Dominio</label><input id="dom" autocapitalize="characters"></div>
+  <div><label>Fecha</label><input id="fecha" type="date"></div>
+  <div><label>Odómetro (km)</label><input id="odo" inputmode="decimal"></div>
+  <div><label>Horómetro (h)</label><input id="hor" inputmode="decimal"></div>
+  <div><label>Turno</label><select id="turno"><option value="M">Mañana (M)</option><option value="T">Tarde (T)</option></select></div>
+  <div><label>Chofer / Maquinista</label><input id="chofer"></div>
+ </div></div>
+ <div class="card"><div class="sub" style="margin-bottom:8px">Tocá cada ítem: <b>OK</b> → <b>Novedad</b> → sin marcar.</div>
+  <button class="btn" id="allok" style="width:100%">Marcar todo OK</button></div>
+ <div id="chk"></div>
+ <div class="card"><h2>Problemas detectados</h2><textarea id="prob" placeholder="Describí la novedad…"></textarea></div>
+ <div id="lockmsg" class="card pase" hidden></div><div id="outbox" class="card" hidden><h2>Mensaje para enviar</h2><textarea id="outtxt" readonly style="min-height:150px"></textarea><div class="row" style="margin-top:8px"><button class="btn p" id="copy">Copiar texto</button><a class="btn" id="walink" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;flex:1">Abrir WhatsApp</a></div><div class="sub" style="margin-top:6px">Tocá "Copiar texto" y pegalo en el chat de WhatsApp.</div></div><div class="row"><button class="btn p" id="send">Enviar por WhatsApp y cerrar</button></div><div class="row" style="margin-top:8px"><button class="btn" id="save" style="flex:1">Guardar borrador</button><button class="btn" id="pdf" style="flex:1">PDF</button><button class="btn" id="clear" style="flex:1">Nueva</button></div>
+</section>
+<section id="v2" hidden>
+ <div class="card"><div class="g">
+  <div><label>Fecha</label><input id="mf" type="date"></div>
+  <div><label>Mostrar</label><select id="mq"><option value="all">Todas</option><option value="nov">Solo con novedad</option><option value="pend">Novedades pendientes (todas las fechas)</option></select></div>
+ </div></div>
+ <div id="list"></div>
+</section>
+</main><div id="toast"></div>
+<script>
+const G=(t,a)=>({t,a});
+const GEN=[
+G('Luces',['Alta delantera izq.','Alta delantera der.','Baja delantera izq.','Baja delantera der.','Guiño delantero izq.','Guiño delantero der.','Guiño trasero izq.','Guiño trasero der.','Posición delantera izq.','Posición delantera der.','Posición trasera izq.','Posición trasera der.','Stop izq.','Stop der.','Marcha atrás izq.','Marcha atrás der.','Giro lateral izq.','Giro lateral der.']),
+G('Cubiertas (6)',['Delantera izq.','Delantera der.','Trasera izq. exterior','Trasera izq. interior','Trasera der. interior','Trasera der. exterior']),
+G('Espejos',['Espejo lateral izq.','Espejo lateral der.']),
+G('Aceite y fluidos',['Aceite motor','Líquido de freno','Líquido refrigerante','Líquido dirección hidráulica','Líquido limpiaparabrisas']),
+G('Cabina',['Luces tablero','Bocina','Interior']),
+G('Equipamiento',['Caja de herramientas','Matafuego','Kit de seguridad','Rueda de auxilio','Gato y llave','Documentación vehículo'])];
+const ESP={'Minicargadora':['Control de aceite hidráulico','Filtro de aire (limpieza)','Mangueras hidráulicas','Engrasado (semanal)'],
+'Camión Volcador':['Urea','Líquido hidráulico (equipo)','Retén hidráulico (equipo)','Engrasado (semanal)'],
+'Camión Atmosférico':['Urea','Aceite de bomba de vacío (equipo)','Control de correas (equipo)','Toma de fuerza (equipo)','Control de acople y manguera (equipo)','Engrasado (semanal)'],
+'Motoniveladora':['Diferencial y caja de transmisión','Estado de cuchillas','Motor de giro cuchillas (bulones)','Mangueras hidráulicas','Engrasado (semanal)'],
+'Hidroelevadora':['Aceite hidráulico (equipo)','Estado de la barquilla','Comandos (equipo)','Mangueras hidráulicas','Toma de fuerza','Engrasado (semanal)']};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let marks={},all={};
+try{all=JSON.parse(localStorage.getItem('flota_v1')||'{}')}catch(e){}
+const persist=()=>{try{localStorage.setItem('flota_v1',JSON.stringify(all))}catch(e){toast('No se pudo guardar en el teléfono')}};
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const fdate=s=>s?s.split('-').reverse().join('/'):'';
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2600)}
+$('tipo').innerHTML=Object.keys(ESP).map(k=>`<option>${k}</option>`).join('');
+$('fecha').value=$('mf').value=today();$('turno').value=new Date().getHours()<14?'M':'T';
+function groups(){const t=$('tipo').value;return GEN.concat([G('Controles específicos – '+t,ESP[t])])}
+function renderChk(){
+ $('chk').innerHTML=groups().map((g,gi)=>`<div class="card"><h2>${esc(g.t)}</h2><div class="items">${g.a.map(n=>{const k=g.t.split(' –')[0]+'|'+n,v=marks[k];
+ return `<button class="it ${v||''}" data-k="${esc(k)}"><span>${esc(n)}</span><b>${v==='ok'?'OK':v==='nov'?'⚠':'○'}</b></button>`}).join('')}</div></div>`).join('')}
+$('chk').onclick=e=>{if(all[did()]?.cerrado)return;const b=e.target.closest('.it');if(!b)return;const k=b.dataset.k,v=marks[k];
+ if(!v)marks[k]='ok';else if(v==='ok')marks[k]='nov';else delete marks[k];renderChk()};
+$('allok').onclick=()=>{if(all[did()]?.cerrado)return;groups().forEach(g=>g.a.forEach(n=>{const k=g.t.split(' –')[0]+'|'+n;if(!marks[k])marks[k]='ok'}));renderChk()};
+$('tipo').onchange=renderChk;
+const did=()=>`${$('fecha').value}_${$('turno').value}_${$('dom').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'')}`;
+function load(){const d=all[did()];if(!d)return;
+ $('nro').value=d.nro||'';$('tipo').value=d.tipo;$('odo').value=d.odo||'';$('hor').value=d.hor||'';$('chofer').value=d.chofer||'';$('prob').value=d.prob||'';marks=d.marks||{};renderChk();toast('Planilla cargada')}
+function setLock(){const d=all[did()],c=!!d?.cerrado;['nro','tipo','odo','hor','chofer','prob'].forEach(i=>$(i).disabled=c);['allok','save','send'].forEach(i=>$(i).disabled=c);$('chk').style.pointerEvents=c?'none':'';
+ const m=$('lockmsg');m.hidden=!c;if(c)m.innerHTML='🔒 Planilla enviada y cerrada el '+new Date(d.envio).toLocaleString('es-AR')+'. No se puede modificar.'}
+['dom','fecha','turno'].forEach(i=>$(i).addEventListener('change',()=>{load();setLock();pase()}));
+function novs(d){return Object.keys(d.marks||{}).filter(k=>d.marks[k]==='nov').map(k=>k.split('|')[1])}
+function hasNov(d){return novs(d).length>0||!!(d.prob||'').trim()}
+function pase(){const dom=$('dom').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');const el=$('pase');el.innerHTML='';if(!dom)return;
+ const cur=did();const prev=Object.entries(all).filter(([id,d])=>id!==cur&&id.endsWith('_'+dom)&&hasNov(d)&&!d.resuelto&&(d.fecha+d.turno)<=($('fecha').value+$('turno').value)).map(x=>x[1]).sort((a,b)=>(b.fecha+b.turno).localeCompare(a.fecha+a.turno));
+ if(!prev.length)return;
+ el.innerHTML=`<div class="card pase"><h2>Pase de turno – novedades pendientes</h2>${prev.map(d=>`<div style="margin-bottom:6px"><b>${fdate(d.fecha)} · ${d.turno}</b> · ${esc(d.chofer)}<br>${novs(d).map(n=>`<span class="tag">⚠ ${esc(n)}</span>`).join('')}${d.prob?`<div>${esc(d.prob)}</div>`:''}</div>`).join('')}</div>`}
+$('dom').addEventListener('input',pase);
+function collect(){return{nro:$('nro').value,tipo:$('tipo').value,dom:$('dom').value.trim().toUpperCase(),fecha:$('fecha').value,turno:$('turno').value,odo:$('odo').value,hor:$('hor').value,chofer:$('chofer').value.trim(),prob:$('prob').value.trim(),marks,resuelto:all[did()]?.resuelto||false,ts:Date.now()}}
+function check(){if(!$('dom').value.trim()||!$('chofer').value.trim()){toast('Falta dominio o chofer');return false}return true}
+function resumen(d){const n=novs(d),tl={M:'Mañana',T:'Tarde'}[d.turno];
+ return `*Control de flota – ${d.dom}*\n${d.tipo} · N° ${d.nro||'-'}\n${fdate(d.fecha)} · Turno ${tl}\nChofer: ${d.chofer}\nOdómetro: ${d.odo||'-'} km · Horómetro: ${d.hor||'-'} h\n\n`+(hasNov(d)?`⚠️ *CON NOVEDAD*\n${n.map(x=>'• '+x).join('\n')}${d.prob?'\nProblemas detectados: '+d.prob:''}`:'✅ *Sin novedad*')}
+function wa(d){const t=resumen(d);$('outtxt').value=t;$('walink').href='https://wa.me/?text='+encodeURIComponent(t);$('outbox').hidden=false;tab(1);setTimeout(()=>$('outbox').scrollIntoView({behavior:'smooth'}),50)}
+$('copy').onclick=()=>{const ta=$('outtxt');ta.focus();ta.select();ta.setSelectionRange(0,99999);let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+ if(!ok&&navigator.clipboard){navigator.clipboard.writeText(ta.value).then(()=>toast('Texto copiado'),()=>toast('Mantené apretado el texto para copiarlo'));return}
+ toast(ok?'Texto copiado':'Mantené apretado el texto para copiarlo')};
+$('save').onclick=()=>{if(!check())return;const id=did();all[id]=collect();persist();toast('Borrador guardado');pase()};
+let armed=0;
+$('send').onclick=()=>{if(!check())return;
+ if(!armed){armed=1;$('send').textContent='Tocá de nuevo para confirmar: se cierra y no se puede modificar';setTimeout(()=>{armed=0;if(!$('send').disabled)$('send').textContent='Enviar por WhatsApp y cerrar'},6000);return}
+ armed=0;$('send').textContent='Enviar por WhatsApp y cerrar';
+ const id=did(),d=collect();d.cerrado=true;d.envio=Date.now();all[id]=d;persist();setLock();wa(d)};
+$('pdf').onclick=()=>{tab(1);window.print()};
+$('clear').onclick=()=>{marks={};['prob','odo','hor','dom'].forEach(i=>$(i).value='');renderChk();setLock();pase()};
+function list(){const f=$('mf').value,q=$('mq').value;
+ let r=Object.entries(all).map(([id,d])=>({id,...d}));
+ if(q==='pend')r=r.filter(d=>hasNov(d)&&!d.resuelto);else{r=r.filter(d=>d.fecha===f);if(q==='nov')r=r.filter(hasNov)}
+ r.sort((a,b)=>(b.fecha+b.turno).localeCompare(a.fecha+a.turno)||a.dom.localeCompare(b.dom));
+ if(!r.length){$('list').innerHTML='<div class="msg">No hay planillas para mostrar.</div>';return}
+ $('list').innerHTML=r.map(d=>{const n=novs(d),h=hasNov(d);
+ return `<div class="card pl ${h?(d.resuelto?'r':'n'):''}"><div class="top"><div><b>${esc(d.dom)}</b> · ${esc(d.tipo)} · N° ${esc(d.nro)}<div class="sub">${fdate(d.fecha)} · Turno ${d.turno} · ${esc(d.chofer)} · ${esc(d.odo)} km · ${esc(d.hor)} h</div></div>
+ <span class="badge ${h?'b-no':'b-ok'}">${h?(d.resuelto?'Resuelta':'Novedad'):'Sin novedad'}</span></div>
+ ${n.length?`<div style="margin-top:6px">${n.map(x=>`<span class="tag">⚠ ${esc(x)}</span>`).join('')}</div>`:''}
+ ${d.prob?`<div style="margin-top:6px">${esc(d.prob)}</div>`:''}
+ <button class="btn" style="margin-top:8px;margin-right:6px" data-wa="${esc(d.id)}">WhatsApp</button>${h?`<button class="btn" style="margin-top:8px" data-res="${esc(d.id)}">${d.resuelto?'Reabrir':'Marcar resuelta'}</button>`:''}</div>`}).join('')}
+$('list').onclick=e=>{const w=e.target.closest('[data-wa]');if(w){wa(all[w.dataset.wa]);return}const b=e.target.closest('[data-res]');if(!b)return;const id=b.dataset.res;all[id].resuelto=!all[id].resuelto;persist();list()};
+$('mf').onchange=$('mq').onchange=list;
+function tab(n){$('v1').hidden=n!==1;$('v2').hidden=n!==2;$('t1').classList.toggle('on',n===1);$('t2').classList.toggle('on',n===2);if(n===2)list()}
+$('t1').onclick=()=>tab(1);$('t2').onclick=()=>tab(2);
+renderChk();
+renderChk();setLock();pase();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
